@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>My Blood Pression</title>
+
+		<!-- amCharts javascript sources -->
+		<script type="text/javascript" src="{{ url_for('static', filename='lib/amcharts/amcharts.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='lib/amcharts/serial.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='lib/amcharts/pie.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='lib/amcharts/themes/light.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='lib/amcharts/plugins/dataloader/dataloader.min.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='lib/jquery/jquery-1.12.3.min.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='lib/jquery/jquery-1.12.3.min.js') }}"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='lib/jquery/jquery-ui.js') }}"></script>
+		
+        <script type="text/javascript" src="{{ url_for('static', filename='lib/gijgo/js/grid.js') }}"></script>
+        
+        <link rel="stylesheet" href="{{ url_for('static', filename='lib/bootstrap/dist/css/bootstrap.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='lib/gijgo/css/grid.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='lib/jquery/jquery-ui.css') }}">
+
+        <!-- Designed by Freepik: http://www.freepik.com/ -->
+        <link rel="icon" href="{{ url_for('static', filename='graphics/cardiogram.png') }}" type="image/png">
+        
+          <style>
+            .demoHeaders {
+                margin-top: 2px 0 0 0;
+            }
+
+            select {
+                width: 200px;
+            }
+            fieldset {
+              border: 0;
+            }
+            label {
+              display: block;
+              margin: 0px 0 0 0;
+            }
+            .overflow {
+              height: 200px;
+            }
+                        
+            #tablediv
+            {
+                 margin: 0 45px 0px 45px;
+                 width: 76%; 
+                 text-align: center; 
+                 height: 600px;
+                 background-color: #FFFFFF;"
+            }
+            
+            #block_container
+            {
+                text-align:center;
+            }
+            #block_right, #block_left
+            {
+                display:inline;
+                text-align:center;
+            }
+            #block_right_img
+            {
+                display:inline;
+                position: relative;
+                top: 0px;
+            }
+            #block_left_button
+            {
+                display:inline;
+                text-align:center;
+                margin-left: 50px;
+            }
+            #table-top 
+            {
+                width: 100%
+            }
+            
+            .readings-label
+            {
+                font: 16px  "Trebuchet MS", sans-serif;
+                margin: 1px
+            }
+            .readings-text
+            {
+                font: 48px "Courier", sans-serif;
+                margin: 0px
+            }
+            .average-panel
+            {
+                height: 300px;
+            }
+            
+            .average-panel
+            {
+                height: 300px;
+            }            
+
+            .readings-label-max, .readings-label-min
+            {
+                font: 12px  "Trebuchet MS", sans-serif;
+                margin: 1px
+            }
+            .readings-text-max, .readings-text-min
+            {
+                font: 18px "Courier", sans-serif;
+                margin: 0px
+            }
+            .min-max-panel
+            {
+                margin: 0px;
+            }
+            .max-panel
+            {
+                margin: 15px;
+            }
+          </style>
+
+		<!-- amCharts javascript code -->
+		<script type="text/javascript">
+            
+            var import_on_going = false;
+            
+            
+            LOW_SYSTOLIC            = 35;
+            LOW_DIASTOLIC           = 25;
+            
+            // ESH values
+            OPTMIMAL_SYSTOLIC            = 120;
+            OPTMIMAL_DIASTOLIC           =  80;
+            NORMAL_SYSTOLIC              = 135;
+            NORMAL_DIASTOLIC             =  85;
+            PREHYPERTENSION_SYSTOLIC     = 140;
+            PREHYPERTENSION_DIASTOLIC    =  90;
+                                            
+            
+            function assert(condition, message) {
+                if (!condition) {
+                    message = message || "Assertion failed";
+                    if (typeof Error !== "undefined") {
+                        throw new Error(message);
+                    }
+                    throw message; // Fallback
+                }
+            }
+
+            jQuery.fn.visible = function() {
+                return this.css('visibility', 'visible');
+            };
+
+            jQuery.fn.invisible = function() {
+                return this.css('visibility', 'hidden');
+            };
+
+            jQuery.fn.visibilityToggle = function() {
+                return this.css('visibility', function(i, visibility) {
+                    return (visibility == 'visible') ? 'hidden' : 'visible';
+                });
+            };
+
+            function getSelectedProfile() {
+                return ($("#radioset :radio:checked").attr('id') == "profileB") ? 1 : 0;
+            }
+        
+            function buildUrlByParameters(aggregation_type,profileId,day_period, date_period = null, multipage = false)
+            {   
+                assert(aggregation_type >=0 && aggregation_type <= 4, "Aggregation type not supported");
+                assert(day_period >=0 && day_period <= 4, "Day Period not supported");
+                assert(profileId >=0 && profileId <= 1, "Profile not supported");                
+                date_period_query = "";
+                
+                if ((date_period!=null) && (date_period.length == 2))
+                {
+                    date_period_query = "?start=" + date_period[0] + "&end=" + date_period[1];
+                }
+                multipage_query = ""
+                if (multipage)
+                {
+                    multipage_query = "/multipage";
+                }
+                return "dataQuery/"+profileId+"/"+aggregation_type+"/"+ day_period+ multipage_query + date_period_query;
+            }
+            
+            function getUrlForChart()
+            {
+                profile = getSelectedProfile();
+                aggregation_type = $( "#aggregation" ).val();
+                day_period = $( "#dayperiod" ).val();
+                date_period = getDatePeriod($( "#dateperiod" ).val());
+                return buildUrlByParameters(aggregation_type, profile, day_period, date_period, false);
+            }
+
+            function getUrlForPreviousAverage()
+            {
+                profile = getSelectedProfile();
+                aggregation_type = $( "#aggregation" ).val();
+                day_period = $( "#dayperiod" ).val();
+                date_period = getDatePeriodPrevious($( "#dateperiod" ).val());
+                return buildUrlByParameters(aggregation_type, profile, day_period, date_period, false);
+            }
+            
+            function getUrlForTable()
+            {   
+                profileId = getSelectedProfile();   // Selected User Profile
+                aggregation_type = 0;               // No aggregation
+                day_period = 0;                     // All day                
+                date_period = getDatePeriod($( "#dateperiod" ).val());
+                return buildUrlByParameters(aggregation_type,profileId,day_period, date_period, true);
+            }
+            
+            function getImportUrl(profileId)
+            {   
+                assert(profileId >=0 && profileId <= 1, "Profile not supported");                
+                return "readDevice/"+profileId;
+            }
+    
+            function getSaveUrl()
+            {   
+                profile = getSelectedProfile();
+                assert(profile >=0 && profile <= 1, "Profile not supported");                
+                return "saveData/"+profile;
+            }
+            
+            function aggregateSerialChartData(serialChartData)
+            {
+                var data_to_chart=[];
+                data_to_chart["Optimal"] = 0;
+                data_to_chart["Normal"] = 0;
+                data_to_chart["PreHypertension"] = 0;
+                data_to_chart["Hypertension"] = 0;
+                
+                serialChartData.forEach( function(row) {                            
+                    if ((row.systolic < OPTMIMAL_SYSTOLIC) && (row.diastolic < OPTMIMAL_DIASTOLIC))
+                        data_to_chart["Optimal"]++;
+                    else if ((row.systolic < NORMAL_SYSTOLIC) && (row.diastolic < NORMAL_DIASTOLIC))
+                        data_to_chart["Normal"]++;
+                    else if ((row.systolic < PREHYPERTENSION_SYSTOLIC) && (row.diastolic < PREHYPERTENSION_DIASTOLIC))  
+                        data_to_chart["PreHypertension"]++;
+                    else
+                        data_to_chart["Hypertension"]++;
+                });
+                
+                var final_data_array = [];
+                final_data_array.push({ "type" : "Optimal", "color": "#84b761", "values" : data_to_chart["Optimal"]});
+                final_data_array.push({ "type" : "Normal", "color": "#67b7dc", "values" : data_to_chart["Normal"]});
+                final_data_array.push({ "type" : "PreHypertension",  "color": "#ff8000", "values" : data_to_chart["PreHypertension"]});
+                final_data_array.push({ "type" : "Hypertension",  "color": "#cc4748", "values" : data_to_chart["Hypertension"]});
+                return final_data_array;
+            }
+            function min(a,b)
+            {
+                return (a<b) ? a : b;                
+            }
+            function max(a,b)
+            {
+                return (a>b) ? a : b;                
+            }
+            
+            function computeSysDiaPulAverage(serialChartData)
+            {
+                avx_sys = 0;
+                avx_dia = 0;
+                avx_pul = 0;
+                
+                max_sys = 0;
+                max_dia = 0;
+                max_pul = 0;
+                
+                min_sys = 0;
+                min_dia = 0;
+                min_pul = 0;
+                
+                len = serialChartData.length;
+                
+                if (len > 0)
+                {
+                    min_sys = 320;
+                    min_dia = 320; 
+                    min_pul = 320;
+                    
+                    serialChartData.forEach( function(row) {                    
+                            avx_sys += row.systolic;
+                            avx_dia += row.diastolic;
+                            avx_pul += row.pulse;
+                            min_sys = min(min_sys, row.systolic);
+                            min_dia = min(min_dia, row.diastolic);
+                            min_pul = min(min_pul, row.pulse);
+                            max_sys = max(max_sys, row.systolic);
+                            max_dia = max(max_dia, row.diastolic);
+                            max_pul = max(max_pul, row.pulse);                            
+                    });
+                
+                    avx_sys = avx_sys /len;
+                    avx_dia = avx_dia /len; 
+                    avx_pul = avx_pul /len;
+                }
+                var final_data_array = [];
+                final_data_array["Systolic"] = Math.round(avx_sys);
+                final_data_array["Diastolic"] = Math.round(avx_dia);
+                final_data_array["Pulse"] = Math.round(avx_pul);
+                final_data_array["MaxSystolic"] = Math.round(max_sys);
+                final_data_array["MaxDiastolic"] = Math.round(max_dia);
+                final_data_array["MaxPulse"] = Math.round(max_pul);
+                final_data_array["MinSystolic"] = Math.round(min_sys);
+                final_data_array["MinDiastolic"] = Math.round(min_dia);
+                final_data_array["MinPulse"] = Math.round(min_pul);
+                
+                return final_data_array;
+            }
+            
+            function triggerDataRetrivalForPreviousAverage(url, currAvgReadings)
+            {
+                var data_to_chart =[];
+                $.getJSON(url, function(data_received){
+                        data_received.forEach( function(row) {
+                            data_to_chart.push({
+                            date:       row.date,
+                            systolic:   row.systolic,
+                            diastolic:  row.diastolic,
+                            pulse:      row.pulse,
+                            aritmia:    row.aritmia
+                        });
+                    });
+                })
+                .done(function() {                        
+                        prevAvgReadings = fillPreviousAverage(data_to_chart);
+                        loadTrendReadings(currAvgReadings, prevAvgReadings);
+                })
+                .fail(function() {
+                  alert( "Error while retriving data from database" );
+                })
+            }
+            
+            function triggerDataRetrivalForChart(url, urlPreviousAvg)
+            {
+                var data_to_chart =[];
+                $.getJSON(url, function(data_received){
+                        data_received.forEach( function(row) {
+                            data_to_chart.push({
+                            date:       row.date,
+                            systolic:   row.systolic,
+                            diastolic:  row.diastolic,
+                            pulse:      row.pulse,
+                            aritmia:    row.aritmia
+                        });
+                    });
+                    //drawChart(data_to_chart);
+                })
+                .done(function() {                        
+                        drawChart(data_to_chart);
+                        currAvgReadings = fillCurrentAverage(data_to_chart);
+                        triggerDataRetrivalForPreviousAverage(urlPreviousAvg, currAvgReadings)
+                })
+                .fail(function() {
+                  alert( "Error while retriving data from database" );
+                })
+            }   
+            
+            function loadCurrentAverageReadings(serialChartData)
+            {
+                readings = computeSysDiaPulAverage(serialChartData);
+                $("#average-systolic").text(readings["Systolic"]);
+                $("#average-diastolic").text(readings["Diastolic"]);
+                $("#average-pulse").text(readings["Pulse"]);
+                $("#min-systolic").text(readings["MinSystolic"]);
+                $("#min-diastolic").text(readings["MinDiastolic"]);
+                $("#min-pulse").text(readings["MinPulse"]);
+                $("#max-systolic").text(readings["MaxSystolic"]);
+                $("#max-diastolic").text(readings["MaxDiastolic"]);
+                $("#max-pulse").text(readings["MaxPulse"]);    
+                return readings;
+            }
+            
+            function loadPreviousAverageReadings(serialChartData)
+            {
+                readings = computeSysDiaPulAverage(serialChartData);
+                $("#average-systolic-n-1").text(readings["Systolic"]);
+                $("#average-diastolic-n-1").text(readings["Diastolic"]);
+                $("#average-pulse-n-1").text(readings["Pulse"]);                
+                return readings;
+            }
+            
+            function intToStrWithSign(n)
+            {
+                return (n<=0?'':'+') + n;
+            }
+            
+            function loadTrendReadings(currentAvg, previousAvg)
+            {
+                if (currentAvg["Systolic"]==0 || previousAvg["Systolic"] == 0)
+                {
+                    $("#average-systolic-trend").text("N/A");
+                }
+                else
+                {
+                    trend_sys = currentAvg["Systolic"] - previousAvg["Systolic"];
+                    $("#average-systolic-trend").text(intToStrWithSign(trend_sys));
+                }
+                
+                if (currentAvg["Diastolic"]==0 || previousAvg["Diastolic"] == 0)
+                {
+                    $("#average-diastolic-trend").text("N/A");
+                }
+                else
+                {
+                    trend_dia = currentAvg["Diastolic"] - previousAvg["Diastolic"];
+                    $("#average-diastolic-trend").text(intToStrWithSign(trend_dia));
+                }
+                
+                if (currentAvg["Pulse"]==0 || previousAvg["Pulse"] == 0)
+                {
+                    $("#average-pulse-trend").text("N/A");
+                }
+                else
+                {
+                    trend_pul = currentAvg["Pulse"] - previousAvg["Pulse"];                    
+                    $("#average-pulse-trend").text(intToStrWithSign(trend_pul));
+                }                             
+            }
+                        
+            function chartPieClick(event)
+            {
+                if (event.dataItem.pulled == true)
+                {
+                    loadReadingsByLabel(event.dataItem.title);
+                }
+                else
+                {
+                    triggerDataRetrivalForTable();
+                }
+            }
+            
+            function fillCurrentAverage(serialDataProviderResultObject)            
+            {
+                return loadCurrentAverageReadings(serialDataProviderResultObject);
+            }
+            function fillPreviousAverage(serialDataProviderResultObject)            
+            {
+                return loadPreviousAverageReadings(serialDataProviderResultObject);
+            }
+            
+            function drawChart(serialDataProviderResultObject) {
+                                        
+                    var serialChart = AmCharts.makeChart("chartdiv",
+                    {
+                        "type": "serial",
+                        "categoryField": "date",
+                        "dataDateFormat": "YYYY-MM-DD JJ:NN:SS",
+                        "theme": "light",
+                        "categoryAxis": {
+                            "parseDates": true,
+                            "minHorizontalGap" : 40,
+                            "dateFormats": [{
+                                        fff: 'period',
+                                        format: 'JJ:NN:SS'
+                                    }, {
+                                        period: 'ss',
+                                        format: 'JJ:NN:SS'
+                                    }, {
+                                        period: 'mm',
+                                        format: 'JJ:NN'
+                                    }, {
+                                        period: 'hh',
+                                        format: 'JJ:NN'
+                                    }, {
+                                        period: 'DD', // day level
+                                        format: 'DD'
+                                    }, {
+                                        period: 'WW', // week level
+                                        format: 'W'
+                                    }, {
+                                        period: 'MM', // month level
+                                        format: 'MMM'
+                                    }, {
+                                        period: 'YYYY',
+                                        format: 'YYYY'
+                                    }],
+                            "minPeriod" : "mm"
+                        },
+                        "chartCursor": {
+                            "enabled": true
+                        },
+                        "chartScrollbar": {
+                            "enabled": true
+                        },
+                        "trendLines": [],
+                        "graphs": [
+                            {
+                                "animationPlayed": true,
+                                "bullet": "round",
+                                "dateFormat": "YYYY-MM-DD JJ:NN:SS",
+                                "id": "AmGraph-1",
+                                "title": "Systolic",
+                                "valueField": "systolic"
+                            },
+                            {
+                                "animationPlayed": true,                        
+                                "bullet": "square",
+                                "dateFormat": "YYYY-MM-DD JJ:NN:SS",
+                                "id": "AmGraph-2",
+                                "title": "Diastolic",
+                                "valueField": "diastolic"
+                            },
+                            {
+                                "animationPlayed": true,
+                                "bullet": "bubble",
+                                "dateFormat": "YYYY-MM-DD JJ:NN:SS",
+                                "id": "AmGraph-3",
+                                "title": "Pulse",
+                                "valueField": "pulse",
+                                "xField": " "
+                            }
+                        ],
+                        "guides": [
+                            {
+                                "fillAlpha": 0.08,
+                                "fillColor": "#00FF00",
+                                "value": 70,
+                                "toValue": 80                            
+                            },
+                            {
+                                "fillAlpha": 0.18,
+                                "fillColor": "#00FF00",
+                                "value": 80,
+                                "toValue": 85                            
+                            },
+                            
+                            {
+                                "fillAlpha": 0.08,
+                                "fillColor": "#00FF00",
+                                "value": 110,
+                                "toValue": 120                            
+                            },
+                            {
+                                "fillAlpha": 0.18,
+                                "fillColor": "#00FF00",
+                                "value": 120,
+                                "toValue": 135                            
+                            }
+                        ],
+                        "valueAxes": [
+                            {
+                                "id": "ValueAxis-1",
+                                "title": "bpm / mmHg"
+                            }
+                        ],
+                        "allLabels": [],
+                        "balloon": {},
+                        "legend": {
+                            "enabled": true,
+                            "useGraphSettings": true
+                        },
+                        "titles": [
+                            {
+                                "id": "Title-1",
+                                "size": 15,
+                                "text": "BP Evolution"
+                            }
+                        ],
+                        "dataProvider": serialDataProviderResultObject                        
+                    }
+                );
+
+                var chartpie = AmCharts.makeChart("chartpiediv",
+                {
+                  "type": "pie",
+                  "theme": "light",
+                  "dataProvider": aggregateSerialChartData(serialDataProviderResultObject),
+                  "valueField": "values",
+                  "titleField": "type",
+                  "colorField": "color",
+                  "pullOutOnlyOne" : true,
+                  "hideLabelsPercent" : 0, 
+                   "balloon":{
+                   "fixedPosition":true
+                  },
+                  "export": {
+                    "enabled": true
+                  },
+                  "listeners": [{
+                    "event": "clickSlice",
+                    "method": function(e) {chartPieClick(e);}
+                    }]
+                });             
+                
+                //currAvgReadings = loadCurrentAverageReadings(serialDataProviderResultObject);
+                //prevAvgReadigns = loadPreviousAverageReadings(serialDataProviderResultObject);
+                //loadTrendReadings(currAvgReadings, prevAvgReadigns);
+            }
+
+            function getUnixtime(date)
+            {
+                return parseInt(date.getTime()/1000);
+            }
+            
+            function getDatePeriodPrevious(dateperiodValue)
+            {
+                prevValue = 0;
+                currentDateperiodValue = parseInt(dateperiodValue);
+                
+                if (currentDateperiodValue == 1)
+                {   // Today
+                    return getDatePeriod(currentDateperiodValue+1);
+                }
+                else if (currentDateperiodValue == 2)
+                {   // Yesterday
+                    return getDatePeriod(21);
+                }
+                else if (currentDateperiodValue == 3)
+                {   // This Week
+                    return getDatePeriod(currentDateperiodValue+1);              
+                }   
+                else if (currentDateperiodValue == 4)
+                {   // Last Week
+                    return getDatePeriod(41);              
+                }
+                else if (currentDateperiodValue == 5)
+                {   // This month 
+                    return getDatePeriod(currentDateperiodValue+1);              
+                }   
+                else if (currentDateperiodValue == 6)
+                {   // Last month
+                    return getDatePeriod(61);              
+                }   
+                else if (currentDateperiodValue == 7)
+                {   // This Year
+                    return getDatePeriod(currentDateperiodValue+1);              
+                }   
+                else if (currentDateperiodValue == 8)
+                {   // Last Year
+                    return getDatePeriod(81);              
+                }   
+                
+                return getDatePeriod(prevValue);
+            }
+            
+            function getDatePeriod(dateperiodValue)
+            {
+              /*
+                <option value="0" selected="selected">All</option>
+                <option value="1">Today</option>
+                <option value="2">Yesterday</option>
+                <option value="3">This Week</option>
+                <option value="4">Last Week</option>
+                <option value="5">This Month</option>
+                <option value="6">Last Month</option>
+                <option value="7">This Year</option>
+                <option value="8">Last Year</option>*/
+                timestamp_str = 0;
+                timestamp_end = 0;
+                
+                var today = new Date();
+    
+                if (dateperiodValue == 1)
+                {   // Today
+                    today.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(today); // previous midnight day
+                    today.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(today); // previous midnight day
+                }
+                else if (dateperiodValue == 2)
+                {   // Yesterday
+                    yesterday  = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 1); 
+                    yesterday.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(yesterday); // previous midnight day
+                    yesterday.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(yesterday); // previous midnight day                
+                }
+                else if (dateperiodValue == 3)
+                {   // This Week
+                    this_week  = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()); 
+                    this_week.setUTCDate(today.getUTCDate() - (today.getUTCDay() + 6) % 7);   
+                    this_week.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(this_week); // previous midnight day                    
+                    today.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(today); // previous midnight day                
+                }   
+                else if (dateperiodValue == 4)
+                {   // Last Week
+                    last_week  = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()); 
+                    last_week.setUTCDate(today.getUTCDate() - (today.getUTCDay() + 6) % 7); 
+                    last_week.setUTCDate(last_week.getUTCDate() - 7);                            
+                    last_week.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(last_week); // previous midnight day                    
+                    last_week.setUTCDate(last_week.getUTCDate() + 7);
+                    today.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(last_week); // previous midnight day                
+                }
+                else if (dateperiodValue == 5)
+                {   // This Month
+                    var firstDay = new Date(today.getUTCFullYear(), today.getUTCMonth(), 1);
+                    var lastDay = new Date(today.getUTCFullYear(), today.getUTCMonth() + 1, 0);                          
+                    firstDay.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(firstDay); // previous midnight day                    
+                    lastDay.setUTCDate(lastDay.getUTCDate());
+                    lastDay.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(lastDay); // previous midnight day                
+                }          
+                else if (dateperiodValue == 6)
+                {   // Previous Month
+                    var firstDay = new Date(today.getUTCFullYear(), today.getUTCMonth()-1, 1);
+                    var lastDay = new Date(today.getUTCFullYear(), today.getUTCMonth(), 0);                          
+                    firstDay.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(firstDay); // previous midnight day                    
+                    lastDay.setUTCDate(lastDay.getUTCDate());
+                    lastDay.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(lastDay); // previous midnight day                
+                }               
+                else if (dateperiodValue == 7)
+                {   // This Year
+                    var firstDay = new Date(today.getUTCFullYear(), 1, 1);
+                    var lastDay = new Date(today.getUTCFullYear()+1, 1, 0);                          
+                    firstDay.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(firstDay); // previous midnight day                    
+                    lastDay.setUTCDate(lastDay.getUTCDate());
+                    lastDay.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(lastDay); // previous midnight day                
+                }   
+                else if (dateperiodValue == 8)
+                {   // Last Year
+                    var firstDay = new Date(today.getUTCFullYear()-1, 1, 1);
+                    var lastDay = new Date(today.getUTCFullYear(), 1, 0);                          
+                    firstDay.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(firstDay); // previous midnight day                    
+                    lastDay.setUTCDate(lastDay.getUTCDate());
+                    lastDay.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(lastDay); // previous midnight day                
+                }   
+                else if (dateperiodValue == 21)
+                {   // Day before Yesterday
+                    yesterday  = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 2); 
+                    yesterday.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(yesterday); // previous midnight day
+                    yesterday.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(yesterday); // previous midnight day                
+                }
+                else if (dateperiodValue == 41)
+                {   // Week before Last Week
+                    last_week  = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()); 
+                    last_week.setUTCDate(today.getUTCDate() - (today.getUTCDay() + 6) % 7); 
+                    last_week.setUTCDate(last_week.getUTCDate() - 14);                            
+                    last_week.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(last_week); // previous midnight day                    
+                    last_week.setUTCDate(last_week.getUTCDate() + 7);
+                    today.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(last_week); // previous midnight day                
+                }
+                else if (dateperiodValue == 61)
+                {   // Month before Previous Month
+                    var firstDay = new Date(today.getUTCFullYear(), today.getUTCMonth()-2, 1);
+                    var lastDay = new Date(today.getUTCFullYear(), today.getUTCMonth()-1, 0);                          
+                    firstDay.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(firstDay); // previous midnight day                    
+                    lastDay.setUTCDate(lastDay.getUTCDate());
+                    lastDay.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(lastDay); // previous midnight day                
+                }  
+                else if (dateperiodValue == 81)
+                {   // Year before Last Year
+                    var firstDay = new Date(today.getUTCFullYear()-2, 1, 1);
+                    var lastDay = new Date(today.getUTCFullYear()-1, 1, 0);                          
+                    firstDay.setUTCHours(0,0,0,0);
+                    timestamp_str = getUnixtime(firstDay); // previous midnight day                    
+                    lastDay.setUTCDate(lastDay.getUTCDate());
+                    lastDay.setUTCHours(23,59,59,99);
+                    timestamp_end = getUnixtime(lastDay); // previous midnight day                
+                }
+                
+                console.log("Start : " + new Date(timestamp_str*1000)) 
+                console.log("End : " + new Date(timestamp_end*1000))
+                
+                return [timestamp_str, timestamp_end];
+                //alert(values);
+            }
+            
+            function handlePanelAction(reloadTable=false)
+            {
+                url = getUrlForChart()
+                urlPreviousAvg = getUrlForPreviousAverage();
+                triggerDataRetrivalForChart(url, urlPreviousAvg);                                    
+                if (reloadTable)
+                {
+                    triggerDataRetrivalForTable();
+                }
+            }
+            
+            function displayImportResult(data)
+            {
+                results = jQuery.parseJSON(data);
+                p_text = "";
+                if (results.errors != "")
+                {
+                   p_text += "Error(s): " + results.errors;
+                   p_text += "<br>";                  
+                }
+                
+                p_text += "Number of data read from device : " + results.device;
+                p_text += "<br>";
+                p_text += "Number of new data imported : " + results.db;
+                
+                $( "#dialog-device-result").html(p_text);
+                $( "#dialog-device" ).dialog();
+                $( "#dialog-device" ).dialog( "open");
+            }
+            
+            $(document).ready(function(){
+                //getData();
+                 $( "#radioset" ).buttonset();
+                 
+                 $("#radioset").on("change", function () {
+                    handlePanelAction(true);
+                    //triggerDataRetrivalForTable();
+                 });                 
+                 
+                 $(function() {
+                    $( "#aggregation" ).selectmenu({
+                          create: function( event, ui ) {                                     
+                                     handlePanelAction(false);
+                                  },
+                          change: function( event, ui ) {                                     
+                                     handlePanelAction(false);
+                                  }
+                        });
+                 });
+                 
+                 $(function() {
+                    $( "#dayperiod" ).selectmenu({
+                          change: function( event, ui ) {                                     
+                                     handlePanelAction(false);
+                                  }
+                        });
+                 });
+                 
+                 $(function() {
+                    $( "#dateperiod" ).selectmenu({
+                          change: function( event, ui ) {                                     
+                                     handlePanelAction(true);
+                                  }
+                        });
+                 });
+                 
+                 importingActionToggle();
+                 function importingActionToggle()
+                 {                    
+                    $("#device-importing").visibilityToggle();
+                 }
+                 
+                 $(function() {
+                    $( "#device-button" )
+                      .button()
+                      .click(function( event ) {
+                        if (!import_on_going)
+                        {
+                            import_on_going = true;
+                            importingActionToggle();
+                            $.ajax({
+                                  url: getImportUrl(getSelectedProfile()),
+                                  success: function(data) {displayImportResult(data); importingActionToggle(); import_on_going=false;},
+                                  error: function() { alert('Error occured'); importingActionToggle(); import_on_going=false;},
+                                  timeout: 600000
+                                })
+                        };
+                      });
+                  });
+            });
+
+            
+            // Table part    
+            var theGrid = null;
+            
+            function loadReadingsByLabel(thersholdLabel)
+            {
+                value_dia_min = 0;
+                value_sys_min = 0;
+                value_dia_max = 0;
+                value_sys_max = 0;
+
+                if (thersholdLabel == "Optimal")
+                {
+                    value_dia_min = 0;
+                    value_sys_min = 0; 
+                    value_dia_max = OPTMIMAL_DIASTOLIC;
+                    value_sys_max = OPTMIMAL_SYSTOLIC;                     
+                    
+                }
+                else if (thersholdLabel == "Normal")
+                {
+                    value_dia_min = OPTMIMAL_DIASTOLIC;
+                    value_sys_min = OPTMIMAL_SYSTOLIC;      
+                    value_dia_max = NORMAL_DIASTOLIC;
+                    value_sys_max = NORMAL_SYSTOLIC;                     
+                }
+                else if (thersholdLabel == "PreHypertension")
+                {
+                    value_dia_min = NORMAL_DIASTOLIC;
+                    value_sys_min = NORMAL_SYSTOLIC;      
+                    value_dia_max = PREHYPERTENSION_DIASTOLIC;
+                    value_sys_max = PREHYPERTENSION_SYSTOLIC;                       
+                }
+                else if (thersholdLabel == "Hypertension")
+                {
+                    value_dia_min = PREHYPERTENSION_DIASTOLIC;
+                    value_sys_min = PREHYPERTENSION_SYSTOLIC;                                    
+                    value_dia_max = 220;
+                    value_sys_max = 220; 
+                }
+                if (theGrid != null)
+                {
+                    theGrid.reload({ maxdia: value_dia_max, maxsys: value_sys_max, mindia: value_dia_min, minsys: value_sys_min });
+                }
+            }
+            
+            function createGrid(url)
+            {            
+                var data, editor;
+                editor = function ($container, currentValue) {
+                    $container.append("<input type=\"text\" value=\"" + currentValue + "\"/>");
+                };
+                var theGrid = $("#readings-table").grid({
+                    dataSource: url,
+                    primaryKey: "date",
+                    columns: [
+                        { field: "date",  title: "Date", editor: editor,        width: 60 },
+                        { field: "systolic", title: "Systolic", editor: true,   width: 50 },
+                        { field: "diastolic", title: "Diastolic", editor: true, width: 50 },
+                        { field: "pulse", title: "Pulse", editor: true,         width: 30 },
+                        { field: "aritmia", title: "Aritmia", editor: true,     width: 20 },
+                        { field: "source", title: "Source",   editor: false,    width: 20 },
+                        { field: "comment", title: "Comment", editor: true,     width: 60 },
+                    ],
+                    
+                    pager: { enable: true, limit: 5, sizes: [5, 10, 20] }
+                });  
+                return theGrid;
+            }
+            
+            function triggerDataRetrivalForTable()
+            {
+                if (theGrid != null)
+                {            
+                    //theGrid.clear();
+                    theGrid.data().dataSource = getUrlForTable();
+                    //theGrid.reload();
+                    theGrid.reload({ maxdia: 0, maxsys: 0, mindia: 0, minsys: 0 });
+                }
+            }
+            
+            function displaySaveResult(data)
+            {
+                results = jQuery.parseJSON(data);
+                p_text = "";
+                if (results.errors != "")
+                {
+                   p_text += "Error(s): " + results.errors;
+                   p_text += "<br>";                  
+                }
+                
+                p_text += "Number of data saved : " + results.device;
+                
+                $( "#dialog-db-result").html(p_text);
+                $( "#dialog-db" ).dialog();
+                $( "#dialog-db" ).dialog( "open");
+            }
+            
+            function saveChangesInGrid(json_data)
+            {
+                url = getSaveUrl();
+                $.get(url, {'update':json_data}, 
+                    function(){
+                        //console.log();                        
+                })
+                .done(function(returnedData) {                        
+                        displaySaveResult(returnedData);
+                })
+                .fail(function() {
+                  alert( "Error while retriving data from database" );
+                })
+            }   
+            
+            function addNewRow()
+            {
+                if (theGrid != null)
+                {   
+                    var today = new Date();
+                    timestamp = $.datepicker.formatDate('yy-mm-dd ', today) + today.getUTCHours() + ":"+ today.getMinutes() + ":" + today.getSeconds();                    
+                    theGrid.addRow({ 'date': timestamp, 'systolic': '120', 'diastolic': '80', 'aritmia' : '0', 'pulse':'60', 'source' : 'MANUAL', 'comment':'' });
+                }
+            }
+            
+            $(document).ready(function () {                
+                theGrid = createGrid(getUrlForTable());
+
+                $('#btn-get-changes').on('click', function () {
+                    //alert(JSON.stringify(theGrid.getChanges()));
+                    saveChangesInGrid(JSON.stringify(theGrid.getChanges()));
+                });
+                
+                $('#btn-clear-changes').on('click', function () {
+                    triggerDataRetrivalForTable();
+                });
+                $('#btn-add-row').on('click', function () {
+                    addNewRow();
+                });
+                
+            });    
+
+            
+     
+        </script>
+ 
+	</head>
+	<body>
+              
+        <table id="table-top">
+            <tr><td width="20%">
+                <div id="block_left" align="left" >
+                    <form action="#">
+                        <h2 class="demoHeaders">Profile</h2>
+                        <div id="radioset" class="ui-buttonset">
+                            <input type="radio" id="profileA" name="radio" class="ui-helper-hidden-accessible"><label for="profileA" class="ui-button ui-widget ui-state-default ui-button-text-only ui-corner-left ui-state-active" role="button" aria-pressed="true"><span class="ui-button-text">Profile A</span></label>
+                            <input type="radio" id="profileB" name="radio" class="ui-helper-hidden-accessible"><label for="profileB" class="ui-button ui-widget ui-state-default ui-button-text-only" role="button" aria-pressed="false"><span class="ui-button-text">Profile B</span></label>
+                        </div>
+             
+                        <fieldset>
+                            <h2 class="demoHeaders">Period</h2>
+                              <select name="dateperiod" id="dateperiod">
+                                <option value="0" selected="selected">All</option>
+                                <option value="1">Today</option>
+                                <option value="2">Yesterday</option>
+                                <option value="3">This Week</option>
+                                <option value="4">Last Week</option>
+                                <option value="5">This Month</option>
+                                <option value="6">Last Month</option>
+                                <option value="7">This Year</option>
+                                <option value="8">Last Year</option>
+                              </select>
+                        </fieldset>
+                        
+                        <fieldset>
+                            <h2 class="demoHeaders">Day Period</h2>
+                              <select name="dayperiod" id="dayperiod">
+                                <option value="0" selected="selected">All Day</option>
+                                <option value="1">Morning</option>
+                                <option value="2">Afternoon</option>
+                                <option value="3">Evening</option>
+                                <option value="4">Night</option>
+                              </select>
+                        </fieldset>
+                        
+                        <fieldset>
+                            <h2 class="demoHeaders">Aggregation</h2>
+                              <select name="aggregation" id="aggregation">
+                                <option value="1" selected="selected">Daily</option>
+                                <option value="2">Weekly</option>
+                                <option value="3">Monthly</option>
+                                <option value="4">Consecutive Readings</option>
+                                <option value="0">No Aggregation</option>
+                              </select>
+                        </fieldset>
+                      
+                      
+                    </form>
+
+                    <h2 class="demoHeaders">Read from device</h2>
+                    <div id="block_container" >
+                        <div id="block_left_button">
+                            <button id="device-button" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button"><span class="ui-button-text">Import Readings</span></button>
+                        </div>
+                        <div id="block_right_img">
+                            <img src="{{ url_for('static', filename='lib/images/loader.gif') }}" height="50" width="50" alt="Importing" id="device-importing">
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td  width="30%">
+                <div id="block_right">
+                    <div id="chartpiediv" align="center" style="text-align: center; width: 700px; height: 400px; background-color: #FFFFFF;"></div>            
+                </div>
+            </td>
+            <td  width="5%">
+                <div id="block_right" align="left">
+                    <div class="min-max-panel">
+                        <div class="max-panel" align="center"><h4 class="demoHeaders">Max</h4>
+                            <p class="readings-label-max">Systolic</p><p id="max-systolic" class="readings-text-max">0</p>
+                            <p class="readings-label-max">Diastolic</p><p id="max-diastolic" class="readings-text-max">0</p>
+                            <p class="readings-label-max">Pulse</p><p id="max-pulse" class="readings-text-max">0</p>
+                        </div>            
+                        <div class="min-panel" align="center"><h4 class="demoHeaders">Min</h4>
+                            <p class="readings-label-min">Systolic</p><p id="min-systolic" class="readings-text-min">0</p>
+                            <p class="readings-label-min">Diastolic</p><p id="min-diastolic" class="readings-text-min">0</p>
+                            <p class="readings-label-min">Pulse</p><p id="min-pulse" class="readings-text-min">0</p> 
+                        </div>            
+                    </div>
+                </div>
+            </td>
+            <td  width="7%">
+                <div id="block_right" align="left">
+                    <div id="average-panel" align="center"><h3 class="demoHeaders">Current Average</h3>
+                        <p class="readings-label">Systolic</p><p id="average-systolic" class="readings-text">0</p> <br/>
+                        <p class="readings-label">Diastolic</p><p id="average-diastolic" class="readings-text">0</p> <br/>
+                        <p class="readings-label">Pulse</p><p id="average-pulse" class="readings-text">0</p> 
+                    </div>            
+                </div>
+            </td>
+            <td width="7%">
+                <div id="block_right" align="left">
+                    <div id="average-panel-n-1" align="center"><h3 class="demoHeaders">Previous</h3>
+                        <p class="readings-label">Systolic</p><p id="average-systolic-n-1" class="readings-text">0</p> <br/>
+                        <p class="readings-label">Diastolic</p><p id="average-diastolic-n-1" class="readings-text">0</p> <br/>
+                        <p class="readings-label">Pulse</p><p id="average-pulse-n-1" class="readings-text">0</p> 
+                    </div>            
+                </div>
+            </td>
+            <td width="7%">
+                <div id="block_right" align="left">
+                    <div id="average-panel-n-1" align="center"><h3 class="demoHeaders">Trend</h3>
+                        <p class="readings-label">Systolic</p><p id="average-systolic-trend" class="readings-text">0</p> <br/>
+                        <p class="readings-label">Diastolic</p><p id="average-diastolic-trend" class="readings-text">0</p> <br/>
+                        <p class="readings-label">Pulse</p><p id="average-pulse-trend" class="readings-text">0</p> 
+                    </div>            
+                </div>
+            </td>
+            <td></td>
+          </tr>
+        </table>
+                    
+        <div id="chartdiv" align="center" style="width: 80%; text-align: center; height: 600px; background-color: #FFFFFF;" ></div>
+        
+        
+        <!-- Dialog for returning the number of imported readings from the device -->
+        <div id="tablediv" align="center">
+            <table id="readings-table" data-ui-library="bootstrap"></table>
+            <div align="right">                  
+                <button id="btn-add-row">Add Row</button>
+                <button id="btn-clear-changes">Clear</button>            
+                <button id="btn-get-changes">Save Changes</button>                        
+            </div>
+        </div>
+
+        
+        <!-- Dialog for returning the number of imported readings from the device -->
+        <div id="dialog-device" title="Import completed" ><p id="dialog-device-result"></p></div>
+        
+        <!-- Dialog for returning the number of imported readings from the device -->
+        <div id="dialog-db" title="Data saved" ><p id="dialog-db-result"></p></div>
+        
+        
+	</body>
+</html>
