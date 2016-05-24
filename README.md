@@ -29,6 +29,9 @@ A lot of things need to be done...:
   - add export to csv
   - add printing & sending to feature
   - add area showing weekend 
+  - add pressure targets feature
+  - customization of the pressure classification and add other standard such as european hypertension society & american ones
+  - add weight and age information (based on date of birth)
   
 Fixes:
   - sometime a second import from device may fail
