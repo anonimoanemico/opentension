@@ -14,4 +14,14 @@ A lot of things need to be done...:
   - implement manual data entry
   - remove stub comments
   - add styling in the trend panel
+  - implement a preference panel
+  - add feature to create and set default view
+  - open default at access
+  - set default profile
+  
+
+![main window](https://raw.githubusercontent.com/anonimoanemico/opentension/master/previews/screen1.png)
+![aggregation](https://raw.githubusercontent.com/anonimoanemico/opentension/master/previews/screen2.png)
+![day period](https://raw.githubusercontent.com/anonimoanemico/opentension/master/previews/screen3.png)
+
 
