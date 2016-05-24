@@ -162,7 +162,7 @@
                 return ($("#radioset :radio:checked").attr('id') == "profileB") ? 1 : 0;
             }
         
-            function buildUrlByParameters(aggregation_type,profileId,day_period, date_period = null, multipage = false)
+            function buildUrlByParameters(aggregation_type,profileId,day_period, date_period, multipage)
             {   
                 assert(aggregation_type >=0 && aggregation_type <= 4, "Aggregation type not supported");
                 assert(day_period >=0 && day_period <= 4, "Day Period not supported");
@@ -773,7 +773,7 @@
                 //alert(values);
             }
             
-            function handlePanelAction(reloadTable=false)
+            function handlePanelAction(reloadTable)
             {
                 url = getUrlForChart()
                 urlPreviousAvg = getUrlForPreviousAverage();
