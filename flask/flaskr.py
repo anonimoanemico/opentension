@@ -16,12 +16,17 @@ import data_adapter
 
 
 #import export_db as dbExporter
-
+def create_dir(dir):
+    try:
+        os.stat(dir)
+    except:
+        print "Creating directory " + str(dir)         
+        os.mkdir(dir)
+        
 def get_db_file():    
-    #dbdir = "D:\OmronReader\data"
-    #db_file_path = os.path.join(dbdir, "bp.db")    
     db_file_path_dir = os.path.abspath("..")
     db_file_path_dir = os.path.join(db_file_path_dir, "data")
+    create_dir(db_file_path_dir)        
     db_file_path = os.path.join(db_file_path_dir, "bp.db")
     return db_file_path
 
@@ -157,8 +162,12 @@ def save_data(profile, methods=['POST', 'GET']):
     readings_output["errors"]   = 0 #errors
     
     return json.dumps(readings_output)
-    
+
+def init():
+    db_update.init(DATABASE)
+        
 if __name__ == '__main__':
+    init()
     app.run()
     
     

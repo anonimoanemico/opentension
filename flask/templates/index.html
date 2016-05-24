@@ -799,8 +799,11 @@
                 p_text += "Number of new data imported : " + results.db;
                 
                 $( "#dialog-device-result").html(p_text);
-                $( "#dialog-device" ).dialog();
+                $( "#dialog-device" ).dialog({
+                    close: function( event, ui ) {handlePanelAction(true)}
+                    });              
                 $( "#dialog-device" ).dialog( "open");
+                
             }
             
             $(document).ready(function(){
@@ -963,7 +966,7 @@
             }
             
             function saveChangesInGrid(json_data)
-            {
+            {                
                 url = getSaveUrl();
                 $.get(url, {'update':json_data}, 
                     function(){
@@ -983,7 +986,7 @@
                 {   
                     var today = new Date();
                     timestamp = $.datepicker.formatDate('yy-mm-dd ', today) + today.getUTCHours() + ":"+ today.getMinutes() + ":" + today.getSeconds();                    
-                    theGrid.addRow({ 'date': timestamp, 'systolic': '120', 'diastolic': '80', 'aritmia' : '0', 'pulse':'60', 'source' : 'MANUAL', 'comment':'' });
+                    theGrid.addRow({ 'date': timestamp, 'systolic': 120, 'diastolic': 80, 'aritmia' : 0, 'pulse':60, 'source' : 'MANUAL', 'comment':'' });
                 }
             }
             

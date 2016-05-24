@@ -1,10 +1,15 @@
 import sys, os, sqlite3, datetime, time
 
+def init(db_file_path):
+    conn = sqlite3.connect(db_file_path)    
+    setup(conn)    
+    conn.close()
+    
 def setup(conn):
     cur = conn.cursor()    
     #cur.execute('''CREATE TABLE IF NOT EXISTS pression (timestamp INTEGER NOT NULL, diastolic INTEGER NOT NULL, systolic INTEGER NOT NULL, pulse INTEGER NOT NULL, restflag INTEGER DEFAULT 0, irregular INTEGER DEFAULT 0, source TEXT DEFAULT NULL, profile INTEGER DEFAULT 0, comment TEXT DEFAULT NULL CONSTRAINT uniquekey PRIMARY KEY (timestamp, diastolic, systolic, pulse, irregular, profile) )''')
     #key based on timestamp and profile only    
-    cur.execute('''CREATE TABLE IF NOT EXISTS pression (timestamp INTEGER NOT NULL, diastolic INTEGER NOT NULL, systolic INTEGER NOT NULL, pulse INTEGER NOT NULL, restflag INTEGER DEFAULT 0, irregular INTEGER DEFAULT 0, source TEXT DEFAULT NULL, profile INTEGER DEFAULT 0, comment TEXT DEFAULT NULL, CONSTRAINT uniquekey PRIMARY KEY (timestamp, profile) )''')
+    cur.execute('''CREATE TABLE IF NOT EXISTS pression (timestamp INTEGER NOT NULL, diastolic INTEGER NOT NULL, systolic INTEGER NOT NULL, pulse INTEGER NOT NULL, restflag INTEGER DEFAULT 0, irregular INTEGER DEFAULT 0, source TEXT DEFAULT NULL, profile INTEGER DEFAULT 0, comment TEXT DEFAULT NULL, CONSTRAINT uniquekey PRIMARY KEY (timestamp, diastolic, systolic, pulse, irregular, source, profile) )''')
     conn.commit()
     
 def add_row(conn, aBP_value):
@@ -22,15 +27,15 @@ def update_single_row(db_file_path, a_BP_value):
     if a_BP_value.is_complete():           
         new_readings_inserted += add_row(conn, a_BP_value)    
     print "Data saved"
-    conn.commit()
+    conn.commit()    
     return new_readings_inserted
     
-def update(db_file_path, readings_values, new_readings_inserted = 0):
+def update(db_file_path, readings_values):
+    new_readings_inserted = 0
     if (len(readings_values)<1):
         print "No values found"
         return new_readings_inserted
     try:
-    
         #create a db connection
         conn = sqlite3.connect(db_file_path)    
         #create the table if does not exist

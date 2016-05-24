@@ -414,20 +414,15 @@ def retrieve_data(input_profile, db_file_path):
     source_name = "OMRON M10-IT"
 
     read_values(target_usage, target_vendor_id, source_name)
-    db_update.update(db_file_path, readings_values)
-    if (len(readings_values)<1):
-        return False
-    else:
-        return True
+    new_readings_inserted = db_update.update(db_file_path, readings_values)
+    return new_readings_inserted
           
 def retrieve_and_update(input_profile, db_file_path):
-    global readings_values, new_readings_inserted, error_msg    
+    global readings_values, error_msg    
     profile = int(input_profile)
-    if retrieve_data(profile, db_file_path):
-        device_date = len(readings_values)        
-        return [device_date, new_readings_inserted, ",".join(error_msg)]
-    else:
-        return [0, 0, ",".join(error_msg)]
+    new_readings_inserted = retrieve_data(profile, db_file_path)
+    device_date = len(readings_values)        
+    return [device_date, new_readings_inserted, ",".join(error_msg)]
 
 
 if __name__ == '__main__':
