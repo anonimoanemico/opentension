@@ -1,9 +1,15 @@
 # opentension
-This project provides a tool for monitoring blood pressure.
+This project provides a monitoring blood pressure application.
 
-The tool will work in a local enviroment and will use a web interface, Chrome is the only browser supported for the moment.
+The tool works in a local environment and is accessed via a web browser such as IE or Chrome.
+The user is supported to first run the server application written in python and then connect to a local address provided by the server, which is usually http://localhost:5000
 
-It is able to retrieve data directely from Omron MT10-IT device (only supported device for the moment).
+The application is able to retrieve data directly from the Omron MT10-IT device (only supported device for the moment) and feed them into a sqlite database file.
+The database is saved in a local folder a no data is sent to an external resource.
+
+Several aggregations and data selection are provided in order to best understand own blood pressure.
+
+Two profiles are supported.
 
 It uses pywinusb for connecting to the device.
 It uses flask as web server + jquery + jquery UI + amcharts + gijgo + bootstrap as client technology.
@@ -22,6 +28,7 @@ A lot of things need to be done...:
   - add import from csv
   - add export to csv
   - add printing & sending to feature
+  - add area showing weekend 
   
 Fixes:
   - sometime a second import from device may fail
