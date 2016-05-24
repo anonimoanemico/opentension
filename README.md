@@ -2,12 +2,12 @@
 This project provides a monitoring blood pressure application.
 
 The tool works in a local environment and is accessed via a web browser such as IE or Chrome.
-The user is supported to first run the server application written in python and then connect to a local address provided by the server, which is usually http://localhost:5000
+The user is supported to first run the server application written in python and then connect to a local address provided by the server, usually it is http://localhost:5000
 
-The application is able to retrieve data directly from the Omron MT10-IT device (only supported device for the moment) and feed them into a sqlite database file.
+The application is able to retrieve data directly from the Omron MT10-IT device (which is the only supported device at the moment) and feed them into a sqlite database file.
 The database is saved in a local folder a no data is sent to an external resource.
 
-Several aggregations and data selection are provided in order to best understand own blood pressure.
+Several aggregations and data selection are provided in order to best understand their own blood pressure.
 
 Two profiles are supported.
 
