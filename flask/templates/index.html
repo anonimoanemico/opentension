@@ -982,12 +982,26 @@
             
             function addNewRow()
             {
+            
+                $( "#dialog-reading" ).dialog({
+                    close: function( event, ui ) {handlePanelAction(true)},
+                    width: 600,
+                    height: 300
+                    });              
+                $( "#dialog-reading" ).dialog( "open");
+                
                 if (theGrid != null)
                 {   
                     var today = new Date();
-                    timestamp = $.datepicker.formatDate('yy-mm-dd ', today) + today.getUTCHours() + ":"+ today.getMinutes() + ":" + today.getSeconds();                    
-                    theGrid.addRow({ 'date': timestamp, 'systolic': 120, 'diastolic': 80, 'aritmia' : 0, 'pulse':60, 'source' : 'MANUAL', 'comment':'' });
+                    timestamp = $.datepicker.formatDate('yy-mm-dd ', today) + today.getUTCHours() + ":"+ today.getMinutes() + ":" + today.getSeconds();      
+                    //newRow = { 'date': timestamp, 'systolic': 120, 'diastolic': 80, 'aritmia' : 0, 'pulse':60, 'source' : 'MANUAL', 'comment':'' };                    
+                    //theGrid.addRow(newRow);
                 }
+            }
+            
+            function delSelectedRow()
+            {
+                alert("Not implemented");
             }
             
             $(document).ready(function () {                
@@ -1005,9 +1019,50 @@
                     addNewRow();
                 });
                 
-            });    
+                $( "#datepicker-reading" ).datepicker();
+                //$( "#systolic-reading" ).spinner();
+                //$( "#diastolic-reading" ).spinner();
+                //$( "#pulse-reading" ).spinner();
+                //$( "#hour-reading" ).spinner();
+                //$( "#min-reading" ).spinner();
+                //$( "#sec-reading" ).spinner();
+               
+                $( "#slider-systolic-reading" ).slider({
+                    range: "min",
+                    value: 120,
+                    step: 1,
+                    min: 30,
+                    max: 220,
+                    slide: function( event, ui ) {
+                        //jQuery( "#amount" ).val( "$" + ui.value );
+                        jQuery( "#systolic-reading" ).val( ui.value );
+                    }
+                });
+                
+                $( "#slider-diastolic-reading" ).slider({
+                    range: "min",
+                    value: 80,
+                    step: 1,
+                    min: 30,
+                    max: 220,
+                    slide: function( event, ui ) {
+                        //jQuery( "#amount" ).val( "$" + ui.value );
+                        jQuery( "#diastolic-reading" ).val( ui.value );
+                    }
+                });
 
-            
+                $( "#slider-pulse-reading" ).slider({
+                    range: "min",
+                    value: 70,
+                    step: 1,
+                    min: 20,
+                    max: 220,
+                    slide: function( event, ui ) {
+                        //jQuery( "#amount" ).val( "$" + ui.value );
+                        jQuery( "#pulse-reading" ).val( ui.value );
+                    }
+                });                
+            });    
      
         </script>
  
@@ -1143,6 +1198,81 @@
         
         <!-- Dialog for returning the number of imported readings from the device -->
         <div id="dialog-device" title="Import completed" ><p id="dialog-device-result"></p></div>
+        
+        <!-- Dialog for saving a readings -->
+        <div id="dialog-reading" title="Saving a New Reading" >
+            <p id="dialog-save-reading">
+            <table>
+                <tr>
+                    <td width="30%">Date:</td>
+                    <td width="20%"> <input type="text" id="datepicker-reading"  maxlength="10" size="10"> </td>
+                    
+                    <td >Hour:</td>
+                    <td > <input type="text" id="hour-reading"  maxlength="2" size="2" value="12"> </td>
+                    
+                    <td >Minute:</td>
+                    <td > <input type="text" id="min-reading"  maxlength="2" size="2" value="00"> </td>
+                    
+                    <td >Second:</td>
+                    <td > <input type="text" id="sec-reading"  maxlength="2" size="2" value="00"> </td>
+                    
+                </tr>
+                <tr>
+                    <td colspan="1">
+                        Systolic:
+                    </td>
+                    <td colspan="1">                        
+                        <input type="text" id="systolic-reading"  maxlength="2" size="2" value="120" readonly>
+                    </td>
+                    <td colspan="6">
+                        <div id="slider-systolic-reading" style="width: 200px; float:left;margin:10px;"></div>                        
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="1">
+                        Diastolic:
+                    </td>
+                    <td colspan="1">
+                        <input type="text" id="diastolic-reading"  maxlength="2" size="2" value="80" readonly>
+                    </td>
+                    <td colspan="6">
+                        <div id="slider-diastolic-reading" style="width: 200px; float:left;margin:10px;"></div>                        
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="1">
+                        Pulse:
+                    </td>
+                    <td colspan="1">
+                        <input type="text" id="pulse-reading"  maxlength="2" size="2" value="60" readonly>
+                    </td>
+                    <td colspan="6">
+                        <div id="slider-pulse-reading" style="width: 200px; float:left;margin:10px;"></div>                        
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="1">
+                        Irregular:
+                    </td>
+                    <td colspan="7">
+                        
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="1">
+                        Comment:
+                    </td>
+                    <td colspan="7">
+                        <textarea id="comment-reading" rows="2" cols="60"></textarea>
+                    </td>
+                </tr>
+            </table>            
+            </p>
+            <div align="right">                  
+                <button id="btn-clear-change-reading">Clear</button>            
+                <button id="btn-get-changes-reading">Save</button>                        
+            </div>            
+        </div>
         
         <!-- Dialog for returning the number of imported readings from the device -->
         <div id="dialog-db" title="Data saved" ><p id="dialog-db-result"></p></div>

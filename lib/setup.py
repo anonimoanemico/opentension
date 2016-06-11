@@ -10,5 +10,6 @@ import bpreading
 import exportHexenhal as exportHexenhal
 import exportBloodPressureW8 as exportBPW8
 import exportCsv as exportCsv
+import flaskr
 
 setup(console=['main.py'])
