@@ -203,7 +203,8 @@
             {   
                 profileId = getSelectedProfile();   // Selected User Profile
                 aggregation_type = 0;               // No aggregation
-                day_period = 0;                     // All day                
+                //day_period = 0;                     // All day  
+                day_period = $( "#dayperiod" ).val();                
                 date_period = getDatePeriod($( "#dateperiod" ).val());
                 return buildUrlByParameters(aggregation_type,profileId,day_period, date_period, true);
             }

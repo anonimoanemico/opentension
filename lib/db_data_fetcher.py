@@ -79,6 +79,7 @@ def build_day_period_in_where(day_period = allday_period, prefix_verb = " AND ")
     sql_day_period = ""
     if (day_period != allday_period):
         period_tuple = get_day_period(day_period)
+        print "From " + period_tuple[0] + " to " + period_tuple[1]
         sql_day_period = prefix_verb + " strftime('%H:%M',datetime(timestamp, 'unixepoch')) BETWEEN strftime('%H:%M','" + str(period_tuple[0]) + "') AND strftime('%H:%M','" + str(period_tuple[1]) + "') "
     return sql_day_period
 
@@ -148,7 +149,7 @@ def build_query(profile, aggregation_type = no_aggregation, day_period = allday_
     #else if aggregation_type == repetitive_aggregation:
     else:
         print "No aggregation/Repetitive"
-            
+    print query      
     return query
 
 def build_query_full_row(profile, day_period = allday_period, order = order_asc, min_max_values = dict(), start_period = 0, end_period = 0):
