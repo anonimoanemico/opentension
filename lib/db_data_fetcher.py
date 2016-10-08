@@ -84,7 +84,7 @@ def build_day_period_in_where(day_period = allday_period, prefix_verb = " AND ")
             sql_day_period = prefix_verb + " strftime('%H:%M',datetime(timestamp, 'unixepoch')) BETWEEN strftime('%H:%M','" + str(period_tuple[0]) + "') AND strftime('%H:%M','" + str(period_tuple[1]) + "') "
         else:
             #we need to split the temporal period, as the end period is smaller due to the change of day
-            sql_day_period = prefix_verb + "( ( strftime('%H:%M',datetime(timestamp, 'unixepoch')) BETWEEN strftime('%H:%M','" + str(period_tuple[0]) + "') AND strftime('%H:%M','24:00') ) OR "
+            sql_day_period = prefix_verb + "( ( strftime('%H:%M',datetime(timestamp, 'unixepoch')) BETWEEN strftime('%H:%M','" + str(period_tuple[0]) + "') AND strftime('%H:%M','23:59') ) OR "
             sql_day_period = sql_day_period + " (strftime('%H:%M',datetime(timestamp, 'unixepoch')) BETWEEN strftime('%H:%M','00:00') AND strftime('%H:%M','"+ str(period_tuple[1]) +"') ) )"
     return sql_day_period
 
