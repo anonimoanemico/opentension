@@ -18,6 +18,7 @@ The tool is supposed to be used in local via web browser.
 # how to use
 Please download the zip file from the following address:
 https://github.com/anonimoanemico/opentension/archive/master.zip
+
 Once on your computer:
 - Unzip all files into a new folder
 - Double click on the file: run_server(.vbs)
